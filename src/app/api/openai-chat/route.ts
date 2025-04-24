@@ -1,6 +1,6 @@
 import { type NextRequest, NextResponse } from "next/server";
 
-const edgeFunctionUrl = process.env.SUPABASE_EDGE_FUNCTION_URL; // e.g., 'https://<project-ref>.supabase.co/functions/v1/analyze-room'
+const edgeFunctionUrl = process.env.SUPABASE_EDGE_FUNCTION_URL_CHAT; // e.g., 'https://<project-ref>.supabase.co/functions/v1/analyze-room'
 const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
 
 export async function POST(req: NextRequest) {
@@ -17,7 +17,7 @@ export async function POST(req: NextRequest) {
 			method: "POST",
 			headers: {
 				"Content-Type": "application/json",
-                Authorization: `Bearer ${supabaseAnonKey}`,
+				Authorization: `Bearer ${supabaseAnonKey}`,
 			},
 			body: JSON.stringify({ prompt }),
 		});

@@ -26,7 +26,7 @@ const formSchema = z.object({
 
 // READ https://ui.shadcn.com/docs/components/form how to use the form component
 
-export function OpenAIPostForm() {
+export function OpenAIPromptForm() {
 	const [responseText, setResponseText] = useState<string | null>(null);
 
 	// 1. Define your form.
@@ -39,7 +39,7 @@ export function OpenAIPostForm() {
 
 	const onSubmit = async (data: z.infer<typeof formSchema>) => {
 		try {
-			const response = await fetch("/api/openai", {
+			const response = await fetch("/api/openai-chat", {
 				method: "POST",
 				headers: {
 					"Content-Type": "application/json",
@@ -82,7 +82,7 @@ export function OpenAIPostForm() {
 							<FormItem className="w-full">
 								<FormLabel>OpenAI Prompt</FormLabel>
 								<FormControl>
-									<Input placeholder="type something" {...field} />
+									<Input placeholder="type something" autoComplete="off" {...field} />
 								</FormControl>
 								<FormDescription>
 									This will be used to generate a response from OpenAI via

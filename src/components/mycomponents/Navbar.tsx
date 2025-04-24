@@ -1,6 +1,4 @@
-"use client";
-
-import { Button } from "@/components/ui/button";
+import AuthButton from "@/components/mycomponents/AuthButton";
 import {
 	NavigationMenu,
 	NavigationMenuItem,
@@ -8,36 +6,34 @@ import {
 	NavigationMenuList,
 	navigationMenuTriggerStyle,
 } from "@/components/ui/navigation-menu";
+import { createClient } from "@/lib/supabase/client";
 
-export default function Navbar({ className }: { className?: string }) {
+export default async function Navbar() {
+	const supabase = createClient();
+
+	const {
+		data: { user },
+	} = await supabase.auth.getUser();
+
 	return (
-		<NavigationMenu className={className}>
-			<NavigationMenuList>
-				<NavigationMenuItem>
-					<NavigationMenuLink href="/" className={navigationMenuTriggerStyle()}>
-						Start
-					</NavigationMenuLink>
-				</NavigationMenuItem>
-				<NavigationMenuItem>
-					<NavigationMenuLink
-						href="/auth/login"
-						className={navigationMenuTriggerStyle()}
-					>
-						Login
-					</NavigationMenuLink>
-				</NavigationMenuItem>
-			</NavigationMenuList>
-			{/* <NavigationMenuLink asChild className={navigationMenuTriggerStyle()}>
-				<Link href="/auth/login">Login</Link>
-			</NavigationMenuLink>
-			<NavigationMenuItem>
-				<NavigationMenuTrigger>Dropdown</NavigationMenuTrigger>
-				<NavigationMenuContent>
-					<NavigationMenuLink>Link</NavigationMenuLink>
-					<NavigationMenuLink>Hallo</NavigationMenuLink>
-					<NavigationMenuLink>Halo2</NavigationMenuLink>
-				</NavigationMenuContent>
-			</NavigationMenuItem> */}
-		</NavigationMenu>
+		<>
+			<NavigationMenu className="self-end">
+				<NavigationMenuList className="flex items-center justify-between">
+					<NavigationMenuItem>
+						<AuthButton initialUser={user} />
+					</NavigationMenuItem>
+				</NavigationMenuList>
+				<NavigationMenuList className="flex items-center justify-between">
+					<NavigationMenuItem>
+						<NavigationMenuLink
+							className={navigationMenuTriggerStyle()}
+							href="/"
+						>
+							Home
+						</NavigationMenuLink>
+					</NavigationMenuItem>
+				</NavigationMenuList>
+			</NavigationMenu>
+		</>
 	);
 }
