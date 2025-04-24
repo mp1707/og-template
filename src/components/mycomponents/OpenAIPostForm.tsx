@@ -48,21 +48,33 @@ export function OpenAIPostForm() {
 			});
 
 			if (!response.ok) {
-				throw new Error("Failed to fetch response");
+				throw new Error(
+					`Failed to fetch response: ${response.status} ${response.statusText}`,
+				);
+			}
+
+
+			const contentType = response.headers.get("content-type");
+			if (!contentType || !contentType.includes("application/json")) {
+				throw new Error(`Invalid response format: Expected JSON and got ${contentType}`);
+
 			}
 
 			const result = await response.json();
-			
 			setResponseText(result.output_text);
 		} catch (error) {
 			console.error("Error:", error);
+			setResponseText("An error occurred while fetching the response.");
 		}
 	};
 
 	return (
 		<>
 			<Form {...form}>
-				<form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4 flex flex-col items-end">
+				<form
+					onSubmit={form.handleSubmit(onSubmit)}
+					className="space-y-4 flex flex-col items-end"
+				>
 					<FormField
 						control={form.control}
 						name="prompt"
@@ -73,16 +85,17 @@ export function OpenAIPostForm() {
 									<Input placeholder="type something" {...field} />
 								</FormControl>
 								<FormDescription>
-									This will be used to generate a response from OpenAI via Supabase EdgeFunction.
+									This will be used to generate a response from OpenAI via
+									Supabase EdgeFunction.
 								</FormDescription>
 								<FormMessage />
 							</FormItem>
 						)}
-						/>
+					/>
 					<Button type="submit">Submit</Button>
 				</form>
 			</Form>
-			{responseText && <Separator className="my-4"/>}
+			{responseText && <Separator className="my-4" />}
 			<span>{responseText}</span>
 		</>
 	);

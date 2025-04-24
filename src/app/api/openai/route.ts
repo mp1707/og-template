@@ -4,12 +4,7 @@ const edgeFunctionUrl = process.env.SUPABASE_EDGE_FUNCTION_URL; // e.g., 'https:
 const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
 
 export async function POST(req: NextRequest) {
-	if (!edgeFunctionUrl || !supabaseAnonKey) {
-		return NextResponse.json(
-			{ error: "Missing environment variables" },
-			{ status: 500 }
-		);
-	}
+	if (!edgeFunctionUrl || !supabaseAnonKey) return;
 
 	try {
 		const { prompt } = await req.json();
