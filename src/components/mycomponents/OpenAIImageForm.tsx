@@ -16,8 +16,12 @@ import {
 } from "@/components/ui/form";
 import { useEffect, useState } from "react";
 import { Separator } from "@/components/ui/separator";
-import { createClient } from "@supabase/supabase-js";
 import Image from "next/image";
+import { Skeleton } from "@/components/ui/skeleton";
+import { Card, CardContent } from "@/components/ui/card";
+import { supaBaseJsClient } from "@/lib/supabase/client";
+import { Input } from "@/components/ui/input";
+import { ModeToggle } from "@/components/mycomponents/ModeToggle";
 
 interface JobData {
 	id: number;
@@ -30,25 +34,20 @@ const formSchema = z.object({
 	image: z.instanceof(File, { message: "Please upload a valid image file." }),
 });
 
-const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
-const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
-
-if (!supabaseUrl || !supabaseAnonKey) {
-	throw new Error("Error.");
-}
-
-const supabase = createClient(supabaseUrl, supabaseAnonKey);
-
 export function OpenAIImageForm({ userId }: { userId: string }) {
 	const [jobData, setJobData] = useState<JobData | null>(null);
 	const [imageUrl, setImageUrl] = useState<string | null>(null);
-	const [isLoading, setIsLoading] = useState(false);
+	const [isAnalyzing, setIsAnalyzing] = useState(false);
+	const [isUploading, setIsUploading] = useState(false);
+
+
+	const showSubmitButton = !jobData && !isAnalyzing && !isUploading;
 
 	// Realtime subscription to listen for updates
 	useEffect(() => {
-		const channel = subscribeToJobUpdates(setJobData, setIsLoading);
+		const channel = subscribeToJobUpdates(setJobData, setIsAnalyzing);
 		return () => {
-			supabase.removeChannel(channel);
+			supaBaseJsClient.removeChannel(channel);
 		};
 	}, []);
 
@@ -60,9 +59,12 @@ export function OpenAIImageForm({ userId }: { userId: string }) {
 
 	// trigger image analysis that is running in Supabase EdgeRuntime.waitUntil(analysisTask());
 	const onSubmit = async (data: z.infer<typeof formSchema>) => {
-		setIsLoading(true);
 		try {
-			const fileName = await uploadImage(data.image);
+			const fileName = await uploadImage(
+				data.image,
+				setIsUploading,
+				setIsAnalyzing,
+			);
 			const publicUrl = getPublicUrl(fileName);
 			setImageUrl(publicUrl);
 			await triggerImageAnalysis(publicUrl, userId);
@@ -72,67 +74,80 @@ export function OpenAIImageForm({ userId }: { userId: string }) {
 	};
 
 	return (
-		<div className="p-6 bg-white rounded-lg shadow-md space-y-6">
-			{imageUrl && (
-				<Image
-					src={imageUrl}
-					alt="Uploaded Image"
-					width={300}
-					height={300}
-					className="rounded-lg"
-				/>
-			)}
-			<Form {...form}>
-				<form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
-					<FormField
-						control={form.control}
-						name="image"
-						render={({ field }) => (
-							<FormItem>
-								<FormLabel className="text-lg font-medium">
-									Upload Image
-								</FormLabel>
-								<FormControl>
-									<input
-										type="file"
-										accept="image/*"
-										className="block w-full p-2 text-sm text-gray-900 border border-gray-300 rounded-lg cursor-pointer bg-gray-50 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-										onChange={(e) =>
-											field.onChange(e.target.files?.[0] || null)
-										}
-									/>
-								</FormControl>
-								<FormDescription className="text-sm text-gray-500">
-									Upload an image to analyze using OpenAI via Supabase
-									EdgeFunction Background Job.
-								</FormDescription>
-								<FormMessage />
-							</FormItem>
-						)}
+		<Card>
+			<CardContent className="space-y-6">
+				{imageUrl ? (
+					<Image
+						src={imageUrl}
+						alt="Uploaded Image"
+						width={300}
+						height={300}
+						className="rounded-lg h-64 w-full object-cover"
 					/>
-					<Button type="submit" className="w-full cursor-pointer">
-						Submit
-					</Button>
-				</form>
-			</Form>
-			<Separator className="my-4" />
-			{jobData?.error && (
-				<div className="text-sm text-red-500 font-medium">{jobData.error}</div>
-			)}
-			{jobData?.result && (
-				<div className="text-sm text-green-500 font-medium">
-					{jobData.result}
-				</div>
-			)}
-			{isLoading && (
-				<div className="flex items-center space-x-2">
-					<div className="w-4 h-4 border-2 border-yellow-500 border-t-transparent rounded-full animate-spin" />
-					<span className="text-sm text-yellow-500 font-medium">
-						Processing...
-					</span>
-				</div>
-			)}
-		</div>
+				) : (
+					<Skeleton className="rounded-lg h-64 w-full flex items-center justify-center">
+						{isUploading ? "...uploading" : "Please upload an image"}
+					</Skeleton>
+				)}
+				<ModeToggle />
+				<Form {...form}>
+					<form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
+						<FormField
+							control={form.control}
+							name="image"
+							render={({ field }) => (
+								<FormItem>
+									<FormLabel className="text-lg font-medium">
+										Upload Image
+									</FormLabel>
+									<FormControl>
+										<Input
+											type="file"
+											accept="image/*"
+											className="cursor-pointer"
+											onChange={(e) => {
+												setJobData(null);
+												setImageUrl(null);
+												field.onChange(e.target.files?.[0] || null);
+											}}
+										/>
+									</FormControl>
+									<FormDescription className="text-sm text-gray-500">
+										Upload an image to analyze using OpenAI via Supabase
+										EdgeFunction Background Job.
+									</FormDescription>
+									<FormMessage />
+								</FormItem>
+							)}
+						/>
+						{showSubmitButton && (
+							<Button type="submit" className="w-full cursor-pointer">
+								Submit
+							</Button>
+						)}
+					</form>
+				</Form>
+				<Separator className="my-4" />
+				{jobData?.error && (
+					<div className="text-sm text-red-500 font-medium">
+						{jobData.error}
+					</div>
+				)}
+				{jobData?.result && (
+					<div className="text-sm text-green-500 font-medium">
+						{jobData.result}
+					</div>
+				)}
+				{isAnalyzing && (
+					<div className="flex items-center space-x-2">
+						<div className="w-4 h-4 border-2 border-yellow-500 border-t-transparent rounded-full animate-spin" />
+						<span className="text-sm text-yellow-500 font-medium">
+							Analyzing...
+						</span>
+					</div>
+				)}
+			</CardContent>
+		</Card>
 	);
 }
 
@@ -140,7 +155,7 @@ function subscribeToJobUpdates(
 	setJobData: React.Dispatch<React.SetStateAction<JobData | null>>,
 	setIsLoading: React.Dispatch<React.SetStateAction<boolean>>,
 ) {
-	return supabase
+	return supaBaseJsClient
 		.channel("schema-db-changes")
 		.on(
 			"postgres_changes",
@@ -157,24 +172,39 @@ function subscribeToJobUpdates(
 		.subscribe();
 }
 
-async function uploadImage(image: File): Promise<string> {
+async function uploadImage(
+	image: File,
+	setIsUploading: React.Dispatch<React.SetStateAction<boolean>>,
+	setIsAnalyzing: React.Dispatch<React.SetStateAction<boolean>>,
+): Promise<string> {
+	setIsUploading(true);
 	const fileName = `${Date.now()}-${image.name}`;
-	const { error: uploadError } = await supabase.storage
+	console.log(">>> vor upload", {
+		fileName,
+		image,
+		third: { contentType: image.type, upsert: false },
+	});
+
+	const { error: uploadError } = await supaBaseJsClient.storage
 		.from("imageinputs")
 		.upload(fileName, image, {
 			contentType: image.type,
 			upsert: false,
 		});
+	console.log(">>> nach upload");
 
 	if (uploadError) {
+		setIsUploading(false);
 		throw uploadError;
 	}
-
+	setIsUploading(false);
+	// analysis is triggered in Supabase EdgeFunction Background Job after upload
+	setIsAnalyzing(true);
 	return fileName;
 }
 
 function getPublicUrl(fileName: string): string {
-	const { data: publicUrlData } = supabase.storage
+	const { data: publicUrlData } = supaBaseJsClient.storage
 		.from("imageinputs")
 		.getPublicUrl(fileName);
 

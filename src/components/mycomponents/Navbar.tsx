@@ -1,4 +1,5 @@
 import AuthButton from "@/components/mycomponents/AuthButton";
+import { ModeToggle } from "@/components/mycomponents/ModeToggle";
 import {
 	NavigationMenu,
 	NavigationMenuItem,
@@ -21,6 +22,9 @@ export default async function Navbar() {
 				<NavigationMenuList className="flex items-center justify-between">
 					<NavigationMenuItem>
 						<AuthButton initialUser={user} />
+					</NavigationMenuItem>
+					<NavigationMenuItem>
+						<ModeToggle />
 					</NavigationMenuItem>
 				</NavigationMenuList>
 				<NavigationMenuList className="flex items-center justify-between">
